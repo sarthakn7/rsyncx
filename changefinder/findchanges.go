@@ -28,9 +28,10 @@ func FindChanges(source *string, destination *string, changeFile *string) {
 	}
 }
 
-func createDirectoryMetadata(directoryPath, relativePathToDir *string) *commons.DirectoryMetadata {
-	log.Printf("Creating directory metadata: %s\n", *directoryPath)
+var totalFiles = 0
+var lastLogTime = time.Now()
 
+func createDirectoryMetadata(directoryPath, relativePathToDir *string) *commons.DirectoryMetadata {
 	name := filepath.Base(*directoryPath)
 	//hash := createDirectoryHash(directoryPath)
 
@@ -56,6 +57,7 @@ func createDirectoryMetadata(directoryPath, relativePathToDir *string) *commons.
 			//subDirectoryNameToSubDirectory[&directoryName] = metadata
 			subdirectories = append(subdirectories, metadata)
 		} else {
+			totalFiles++
 			metadata := createFileMetadata(&path, &currentRelativePathToDir, info.ModTime(), info.Size())
 			if metadata != nil {
 				//fileName := filepath.Base(path)
@@ -69,6 +71,13 @@ func createDirectoryMetadata(directoryPath, relativePathToDir *string) *commons.
 
 	if err != nil {
 		fmt.Printf("Error walking the path %q: %v\n", directoryPath, err)
+	}
+
+	// Print every 10 seconds
+	if lastLogTime.Add(10000000000).Before(time.Now()) {
+		fmt.Printf("Files processed : %d\n", totalFiles)
+		fmt.Printf("Creating directory metadata: %s\n", *directoryPath)
+		lastLogTime = time.Now()
 	}
 
 	return &commons.DirectoryMetadata{&name, directoryPath /*hash, fileNameToFile, subDirectoryNameToSubDirectory,*/, files, subdirectories}
