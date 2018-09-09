@@ -173,7 +173,7 @@ func findAddMoveOperationsInDirectory(sourceMetadata, destinationMetadata *commo
 			// Add file addition operation
 			op := commons.Operation{commons.OpAddFile, sourceFile.CompletePath, sourceFile.RelativePathToDir}
 			operations = append(operations, &op)
-		} else {
+		} else if *sourceFile.RelativePathToDir != *destinationFile.RelativePathToDir {
 			// Add file move operation
 			op := commons.Operation{commons.OpMoveFile, destinationFile.CompletePath, sourceFile.RelativePathToDir}
 			operations = append(operations, &op)
