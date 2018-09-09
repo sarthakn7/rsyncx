@@ -15,21 +15,30 @@ import (
 // Generate a file containing the planned changes
 func FindChanges(source *string, destination *string, changeFile *string) {
 	emptyPath := ""
+	fmt.Printf("Creating directory metadata for source: %s\n", *source)
 	sourceMetadata := createDirectoryMetadata(source, &emptyPath)
+	fmt.Printf("Creating directory metadata for destination: %s\n", *destination)
 	destinationMetadata := createDirectoryMetadata(destination, &emptyPath)
 
-	findRequiredOperations(sourceMetadata, destinationMetadata)
+	fmt.Printf("Finding required operations")
+	operations := findRequiredOperations(sourceMetadata, destinationMetadata)
+
+	for _, op := range operations {
+		fmt.Printf("%s %s %s", op.OpType, op.Source, op.Destination)
+	}
 }
 
 func createDirectoryMetadata(directoryPath, relativePathToDir *string) *commons.DirectoryMetadata {
+	log.Printf("Creating directory metadata: %s\n", *directoryPath)
+
 	name := filepath.Base(*directoryPath)
-	hash := createDirectoryHash(directoryPath)
+	//hash := createDirectoryHash(directoryPath)
 
 	subdirectories := make([]*commons.DirectoryMetadata, 0)
 	files := make([]*commons.FileMetadata, 0)
 
-	fileNameToFile := make(map[*string]*commons.FileMetadata)
-	subDirectoryNameToSubDirectory := make(map[*string]*commons.DirectoryMetadata)
+	//fileNameToFile := make(map[*string]*commons.FileMetadata)
+	//subDirectoryNameToSubDirectory := make(map[*string]*commons.DirectoryMetadata)
 
 	currentRelativePathToDir := filepath.Join(*relativePathToDir, name)
 
@@ -38,16 +47,21 @@ func createDirectoryMetadata(directoryPath, relativePathToDir *string) *commons.
 			fmt.Printf("Unable to read path %q: %v\n", path, err)
 			return err
 		}
+		if path == *directoryPath {
+			return nil
+		}
 		if info.IsDir() {
 			metadata := createDirectoryMetadata(&path, &currentRelativePathToDir)
-			directoryName := filepath.Base(path)
-			subDirectoryNameToSubDirectory[&directoryName] = metadata
+			//directoryName := filepath.Base(path)
+			//subDirectoryNameToSubDirectory[&directoryName] = metadata
 			subdirectories = append(subdirectories, metadata)
 		} else {
 			metadata := createFileMetadata(&path, &currentRelativePathToDir, info.ModTime(), info.Size())
-			fileName := filepath.Base(path)
-			fileNameToFile[&fileName] = metadata
-			files = append(files, metadata)
+			if metadata != nil {
+				//fileName := filepath.Base(path)
+				//fileNameToFile[&fileName] = metadata
+				files = append(files, metadata)
+			}
 		}
 
 		return nil
@@ -57,12 +71,16 @@ func createDirectoryMetadata(directoryPath, relativePathToDir *string) *commons.
 		fmt.Printf("Error walking the path %q: %v\n", directoryPath, err)
 	}
 
-	return &commons.DirectoryMetadata{&name, directoryPath, hash, fileNameToFile, subDirectoryNameToSubDirectory, files, subdirectories}
+	return &commons.DirectoryMetadata{&name, directoryPath /*hash, fileNameToFile, subDirectoryNameToSubDirectory,*/, files, subdirectories}
 }
 
 func createFileMetadata(filePath, relativePathToDir *string, modTime time.Time, size int64) *commons.FileMetadata {
 	name := filepath.Base(*filePath)
 	hash := createFileHash(filePath)
+
+	if hash == nil {
+		return nil
+	}
 
 	return &commons.FileMetadata{&name, filePath, relativePathToDir, hash, modTime, size}
 }
@@ -80,7 +98,8 @@ func createDirectoryHash(directoryPath *string) []byte {
 func createFileHash(filePath *string) []byte {
 	file, err := os.Open(*filePath)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Cannot open file %s: %s", *filePath, err.Error())
+		return nil
 	}
 	defer file.Close()
 	hasher := sha256.New()
@@ -121,7 +140,7 @@ func createFileSearchParam(file *commons.FileMetadata) *fileSearchParams {
 	return &fileSearchParams{file.Name, file.Hash, file.ModTime, file.Size}
 }
 
-func findRequiredOperations(sourceMetadata, destinationMetadata *commons.DirectoryMetadata) {
+func findRequiredOperations(sourceMetadata, destinationMetadata *commons.DirectoryMetadata) []*commons.Operation {
 	invertedSourceMapping := createInvertedFileMapping(sourceMetadata)
 	invertedDestinationMapping := createInvertedFileMapping(destinationMetadata)
 
@@ -130,6 +149,8 @@ func findRequiredOperations(sourceMetadata, destinationMetadata *commons.Directo
 	// TODO: directory creation/deletion ops
 	findAddMoveOperationsInDirectory(sourceMetadata, destinationMetadata, invertedDestinationMapping, operations)
 	findDeleteOperationsInDirectory(destinationMetadata, invertedSourceMapping, operations)
+
+	return operations
 }
 
 func findAddMoveOperationsInDirectory(sourceMetadata, destinationMetadata *commons.DirectoryMetadata,
