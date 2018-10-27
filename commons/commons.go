@@ -12,13 +12,13 @@ type FileMetadata struct {
 }
 
 type DirectoryMetadata struct {
-	Name                           *string
-	Path                           *string
-	Hash                           []byte
-	FileNameToFile                 map[*string]*FileMetadata
-	SubDirectoryNameToSubDirectory map[*string]*DirectoryMetadata
-	Files                          []*FileMetadata
-	Subdirectories                 []*DirectoryMetadata
+	Name *string
+	Path *string
+	//Hash                           []byte
+	//FileNameToFile                 map[*string]*FileMetadata
+	//SubDirectoryNameToSubDirectory map[*string]*DirectoryMetadata
+	Files          []*FileMetadata
+	Subdirectories []*DirectoryMetadata
 }
 
 type OpType int
@@ -33,7 +33,7 @@ const (
 )
 
 type Operation struct {
-	opType      OpType
-	source      *string
-	destination *string
+	OpType      OpType
+	Source      *string
+	Destination *string
 }
