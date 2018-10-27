@@ -18,7 +18,7 @@ func main() {
 	source := flag.String("src", none, "Source directory path")
 	destination := flag.String("dest", none, "Destination directory path")
 	operation := flag.String("op", createPlan, "Operation to perform: fc to find changes, ac to apply changes")
-	changePlanFile := flag.String("cf", none, "Path to file containing planned changes, required to apply the plan")
+	changePlanFile := flag.String("cf", none, "CompletePath to file containing planned changes, required to apply the plan")
 
 	flag.Parse()
 
